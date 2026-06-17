@@ -1,0 +1,7 @@
+interface:
+  display_name: "Orbit Character Sprite"
+  short_description: "Audit and package OrbitSurvive character sprites"
+  default_prompt: "Use $orbit-character-sprite to create or review a fixed-cell character walk sheet."
+
+policy:
+  allow_implicit_invocation: true
