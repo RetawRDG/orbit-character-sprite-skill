@@ -170,7 +170,7 @@ def copy_skill_payload(source: Path, destination: Path, force: bool, dry_run: bo
     if not files:
         raise InstallError(f"no files selected from {source}")
 
-    installed_paths = [str(path.relative_to(source)) for path in files]
+    installed_paths = [path.relative_to(source).as_posix() for path in files]
     if dry_run:
         return installed_paths
 

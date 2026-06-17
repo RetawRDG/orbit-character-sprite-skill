@@ -16,6 +16,61 @@ def parse_rows(value: str) -> list[str]:
     return rows
 
 
+def read_string_constants(source: str) -> dict[str, str]:
+    return dict(re.findall(r"const\s+([A-Za-z_][A-Za-z0-9_]*)\s*:?=\s*[\"']([^\"']+)[\"']", source))
+
+
+def extract_braced_const_body(source: str, const_name: str) -> str | None:
+    const_match = re.search(rf"const\s+{re.escape(const_name)}\s*:?=", source)
+    if not const_match:
+        return None
+    open_index = source.find("{", const_match.end())
+    if open_index == -1:
+        return None
+    depth = 0
+    for index in range(open_index, len(source)):
+        char = source[index]
+        if char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return source[open_index + 1 : index]
+    return None
+
+
+def resolve_row_token(token: str, constants: dict[str, str]) -> str:
+    token = token.strip()
+    if (token.startswith('"') and token.endswith('"')) or (token.startswith("'") and token.endswith("'")):
+        return token[1:-1]
+    return constants.get(token, token)
+
+
+def read_row_keys(source: str) -> list[str]:
+    body = extract_braced_const_body(source, "ROWS")
+    if body is None:
+        return []
+
+    constants = read_string_constants(source)
+    token_pattern = r"(\"[^\"]+\"|'[^']+'|[A-Za-z_][A-Za-z0-9_]*)"
+    row_keys: list[str] = []
+
+    for raw_key in re.findall(token_pattern + r"\s*:", body):
+        key = resolve_row_token(raw_key, constants)
+        if "_" in key:
+            row_keys.append(key)
+
+    nested_pattern = re.compile(token_pattern + r"\s*:\s*\{(?P<body>[^{}]*)\}", flags=re.DOTALL)
+    for match in nested_pattern.finditer(body):
+        state = resolve_row_token(match.group(1), constants)
+        inner_body = match.group("body")
+        for raw_direction in re.findall(token_pattern + r"\s*:", inner_body):
+            direction = resolve_row_token(raw_direction, constants)
+            row_keys.append(f"{state}_{direction}")
+
+    return list(dict.fromkeys(row_keys))
+
+
 def read_runtime_contract(path: Path) -> dict[str, object]:
     if not path.exists():
         raise FileNotFoundError(f"runtime script not found: {path}")
@@ -30,9 +85,9 @@ def read_runtime_contract(path: Path) -> dict[str, object]:
     target_match = re.search(r"const\s+TARGET_HEIGHT\s*:?=\s*([0-9.]+)", source)
     if target_match:
         contract["target_height"] = float(target_match.group(1))
-    rows_match = re.search(r"const\s+ROWS\s*:?=\s*\{(?P<body>.*?)\}", source, flags=re.DOTALL)
-    if rows_match:
-        contract["row_keys"] = re.findall(r"[\"']([^\"']+)[\"']\s*:", rows_match.group("body"))
+    row_keys = read_row_keys(source)
+    if row_keys:
+        contract["row_keys"] = row_keys
     return contract
 
 

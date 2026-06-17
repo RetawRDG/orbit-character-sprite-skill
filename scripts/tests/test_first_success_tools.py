@@ -85,6 +85,28 @@ const ROWS := {
         report = validate_runtime_contract(contract, {"frame_size": [96, 96], "frames": 6, "rows": ["down", "right", "up", "left"]})
         self.assertEqual(report["status"], "pass")
 
+    def test_runtime_contract_reads_nested_state_direction_rows(self) -> None:
+        source = """
+const FRAME_SIZE := Vector2i(96, 96)
+const FRAME_COUNT := 6
+const STATE_IDLE := "idle"
+const STATE_WALK := "walk"
+const DIR_DOWN := "down"
+const DIR_RIGHT := "right"
+const DIR_UP := "up"
+const DIR_LEFT := "left"
+const ROWS := {
+  STATE_IDLE: {DIR_DOWN: 0, DIR_RIGHT: 1, DIR_UP: 2, DIR_LEFT: 3},
+  STATE_WALK: {DIR_DOWN: 4, DIR_RIGHT: 5, DIR_UP: 6, DIR_LEFT: 7},
+}
+"""
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "player_visual.gd"
+            path.write_text(source, encoding="utf-8")
+            contract = read_runtime_contract(path)
+        report = validate_runtime_contract(contract, {"frame_size": [96, 96], "frames": 6, "rows": ["down", "right", "up", "left"]})
+        self.assertEqual(report["status"], "pass")
+
     def test_first_success_passes_with_matching_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
