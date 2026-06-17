@@ -1,5 +1,7 @@
 # Orbit Character Sprite Skill
 
+[English](README.md) | [Русский](README.ru.md)
+
 `orbit-character-sprite` is a Codex skill for creating, auditing, reviewing, and packing fixed-cell character sprite sheets for OrbitSurvive.
 
 The repository root is the skill folder. `SKILL.md` is the file an AI agent must read when the skill is invoked. The Python scripts in `scripts/` are deterministic helpers for pose guides, chroma-key cleanup, sheet audit, review assets, and runtime packing.
